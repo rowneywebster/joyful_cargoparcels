@@ -103,4 +103,3 @@ def me():
 def logout():
     # If using token blocklist, revoke token here
     return api_response(None, "Logged out successfully")
-gem
