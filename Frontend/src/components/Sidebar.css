@@ -1,0 +1,142 @@
+/* src/components/Sidebar.css */
+
+.sidebar-container {
+  width: 250px; /* Fixed width for the sidebar */
+  flex-basis: 250px; /* Ensure it takes up 250px in flex layout */
+  background-color: #ffffff; /* White background */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  transition: transform 0.3s ease-in-out; /* Smooth transition for mobile */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  position: relative; /* Ensure it's part of the normal flow on desktop */
+  z-index: 1; /* Ensure it's above other content if needed */
+}
+
+.sidebar-header {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.sidebar-logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e40af; /* Deep Blue, Primary Accent */
+  text-align: center;
+}
+
+.sidebar-nav {
+  flex-grow: 1;
+  padding: 20px 0;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  margin-bottom: 5px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  color: #374151; /* Dark gray for text */
+  text-decoration: none;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.nav-link:hover {
+  background-color: #f0f4f8; /* Light hover background */
+  color: #1e40af; /* Deep Blue on hover */
+}
+
+.nav-link.active {
+  background-color: #1e40af; /* Deep Blue for active state */
+  color: #ffffff; /* White text for active state */
+  font-weight: 600;
+}
+
+.nav-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.user-profile {
+  margin-bottom: 10px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.user-role {
+  font-size: 0.85rem;
+  color: #6b7280; /* Lighter gray */
+  margin-left: 5px;
+}
+
+.logout-button {
+  background-color: #dc2626; /* Red for logout */
+  color: #ffffff;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.logout-button:hover {
+  background-color: #b91c1c; /* Darker red on hover */
+}
+
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none; /* Hidden by default on desktop */
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background-color: #1e40af;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1001; /* Above sidebar */
+  border-radius: 5px;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
+    transform: translateX(-100%); /* Hide sidebar by default */
+    box-shadow: none; /* Remove shadow when hidden */
+  }
+
+  .sidebar-container.open {
+    transform: translateX(0); /* Show sidebar when open */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Add shadow when open */
+  }
+
+  .hamburger-menu {
+    display: block; /* Show hamburger on mobile */
+  }
+}

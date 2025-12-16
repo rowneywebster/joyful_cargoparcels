@@ -1,0 +1,23 @@
+/* src/layouts/MainLayout.css */
+
+.main-layout-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f3f4f6; /* Light gray background for the whole app */
+}
+
+.main-content-area {
+  flex-grow: 1;
+  padding: 20px; /* Add some padding around the content */
+  overflow-y: auto; /* Allow scrolling for main content */
+  transition: margin-left 0.3s ease-in-out; /* Smooth transition for desktop */
+  /* Removed margin-left: 250px; here. Flexbox should handle it. */
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .main-content-area {
+    margin-left: 0; /* No margin on mobile */
+    padding-top: 60px; /* Space for hamburger menu */
+  }
+}

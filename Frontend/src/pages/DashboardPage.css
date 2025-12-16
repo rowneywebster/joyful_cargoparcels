@@ -1,0 +1,149 @@
+/* src/pages/DashboardPage.css */
+
+.dashboard-page-container {
+  padding: 20px;
+  background-color: #f3f4f6; /* Light gray background */
+  min-height: calc(100vh - 40px); /* Adjust for padding */
+}
+
+.dashboard-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1e40af; /* Deep Blue, Primary Accent */
+  margin-bottom: 15px;
+}
+
+.welcome-message {
+  font-size: 1.1rem;
+  color: #374151;
+  margin-bottom: 30px;
+}
+
+.dashboard-section {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background-color: #f9fafb; /* Very light gray for cards */
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.card h3 {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e40af; /* Deep Blue */
+  margin-bottom: 5px;
+}
+
+.trend-indicator {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.trend-indicator.green {
+  color: #10b981; /* Success green */
+}
+
+.trend-indicator.red {
+  color: #ef4444; /* Error red */
+}
+
+.card.warning {
+  background-color: #fef3c7; /* Light yellow for warning */
+  border-color: #facc15; /* Secondary Accent Yellow */
+}
+
+.card.warning .metric-value {
+  color: #facc15; /* Secondary Accent Yellow */
+}
+
+.card.info {
+  background-color: #e0f2fe; /* Light blue for info */
+  border-color: #38bdf8; /* Sky blue */
+}
+
+.card.info .metric-value {
+  color: #0ea5e9; /* Sky blue */
+}
+
+.quick-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 5px 15px;
+  font-size: 0.9rem;
+}
+
+.status-pill .status-badge {
+  margin-right: 8px;
+  padding: 3px 8px; /* Smaller padding for pills */
+  font-size: 0.75rem; /* Smaller font for pills */
+}
+
+.status-pill .status-count {
+  font-weight: 600;
+  color: #374151;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activity-item {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.3rem;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.activity-timestamp {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-right: 15px;
+}

@@ -1,0 +1,330 @@
+/* src/pages/ParcelsPage.css */
+
+.parcels-page-container {
+  padding: 20px;
+  background-color: #f3f4f6;
+  min-height: calc(100vh - 40px);
+}
+
+.parcels-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1e40af; /* Deep Blue, Primary Accent */
+  margin-bottom: 20px;
+}
+
+.top-action-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.primary-button {
+  background-color: #1e40af; /* Deep Blue */
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.primary-button:hover {
+  background-color: #1d4ed8; /* Slightly darker blue */
+}
+
+.secondary-button {
+  background-color: #ffffff;
+  color: #1e40af;
+  padding: 10px 20px;
+  border: 1px solid #1e40af;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.secondary-button:hover {
+  background-color: #e0e7ff; /* Light blue hover */
+}
+
+.search-input,
+.filter-select {
+  padding: 10px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 1rem;
+  flex-grow: 1; /* Allow search input to grow */
+  max-width: 300px; /* Limit search input width */
+}
+
+.table-responsive {
+  overflow-x: auto;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.parcels-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px; /* Adjusted min-width after removing columns */
+}
+
+.parcels-table th,
+.parcels-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.parcels-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.parcels-table tbody tr:hover {
+  background-color: #f0f4f8;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Status Badge Colors */
+.status-badge.paid {
+  background-color: #d1fae5; /* Green background */
+  color: #065f46; /* Dark green text */
+}
+
+.status-badge.pending {
+  background-color: #fef3c7; /* Yellow background */
+  color: #92400e; /* Dark yellow/brown text */
+}
+
+.status-badge.postponed {
+  background-color: #ffedd5; /* Orange background */
+  color: #c2410c; /* Dark orange text */
+}
+
+.status-badge.overdue {
+  background-color: #fee2e2; /* Red background */
+  color: #991b1b; /* Dark red text */
+}
+
+.status-badge.cancelled {
+  background-color: #e5e7eb; /* Gray background */
+  color: #4b5563; /* Dark gray text */
+}
+
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-right: 10px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.action-button.edit {
+  color: #1e40af;
+}
+
+.action-button.edit:hover {
+  background-color: #e0e7ff;
+}
+
+.action-button.delete {
+  color: #dc2626;
+}
+
+.action-button.delete:hover {
+  background-color: #fee2e2;
+}
+
+.no-parcels-message {
+  text-align: center;
+  padding: 50px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.loading-message, .error-message {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.1rem;
+  color: #374151;
+}
+
+.error-message {
+  color: #dc2626;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 0.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+.modal-header h2 {
+  font-size: 1.8rem;
+  color: #1e40af;
+  margin: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.close-button:hover {
+  color: #374151;
+}
+
+.modal-content .form-group {
+  margin-bottom: 15px;
+}
+
+.modal-content .form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #374151;
+}
+
+.modal-content .form-group input[type="text"],
+.modal-content .form-group input[type="number"],
+.modal-content .form-group input[type="date"],
+.modal-content .form-group select,
+.modal-content .form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.modal-content .form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.modal-content .form-error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+
+
+/* Pagination Styles */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.items-per-page select {
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background-color: #f9fafb;
+  cursor: pointer;
+}
+
+.page-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.page-buttons button {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #4b5563;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.page-buttons button:hover:not(:disabled) {
+  background-color: #e0e7ff;
+  color: #1e40af;
+}
+
+.page-buttons button.active {
+  background-color: #1e40af;
+  color: white;
+  border-color: #1e40af;
+}
+
+.page-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
