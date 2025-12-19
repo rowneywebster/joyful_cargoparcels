@@ -7,9 +7,9 @@ from app import create_app, db
 from app.models import User, Parcel, PostponedOrder, Expense, ExpenseCategory
 
 # Ensure the DATABASE_URL is set
-os.environ["DATABASE_URL"] = "postgresql://cargo:password@localhost:5432/joyful_cargo_db"
+# os.environ["DATABASE_URL"] = "postgresql://cargo:password@localhost:5432/joyful_cargo_db"
 
-app = create_app()
+app = create_app('development')
 
 with app.app_context():
     print("Seeding database...")

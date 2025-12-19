@@ -1,7 +1,8 @@
-import os
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+
+from .config import config_by_name
 from .database import db
 
 # Import Blueprints
@@ -15,13 +16,15 @@ from .routes.expense_category_routes import expense_category_bp
 
 
 
-def create_app():
+from app.config import config_by_name
+
+
+def create_app(config_name='development'):
     app = Flask(__name__)
 
     # Load environment configurations
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY")
+    app.config.from_object(config_by_name[config_name])
+
 
     # Initialize extensions
     db.init_app(app)
