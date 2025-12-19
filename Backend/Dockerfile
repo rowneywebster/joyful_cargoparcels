@@ -15,5 +15,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run the app
-CMD ["flask", "run", "--host=0.0.0.0", "--port=8000"]
+# Run the app with Gunicorn (production WSGI server)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "run:app"]
