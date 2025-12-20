@@ -1,32 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ParcelsPage.css';
-import { getParcels, addParcel, updateParcel, deleteParcel } from '../api/parcels';
-import { useAuth } from '../hooks/useAuth';
+import { getParcels, createParcel, updateParcel, deleteParcel, updateParcelStatus } from '../api/parcels';
 
 const ParcelsPage = () => {
   const [parcels, setParcels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentParcel, setCurrentParcel] = useState(null); // For edit mode
+  const [currentParcel, setCurrentParcel] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const { user } = useAuth();
+  
 
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const itemsPerPageOptions = [10, 20, 30];
 
   useEffect(() => {
+    
     fetchParcels();
-  }, []);
+  }, [fetchParcels]);
 
-  const fetchParcels = async () => {
+  const fetchParcels = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getParcels();
+      const params = {
+        page: currentPage,
+        per_page: itemsPerPage,
+        search: searchTerm,
+        status: filterStatus,
+      };
+      const data = await getParcels(params);
       setParcels(data);
     } catch (err) {
       setError('Failed to fetch parcels.');
@@ -34,21 +39,19 @@ const ParcelsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, filterStatus, setParcels, setLoading, setError]);
 
   const handleAddEditParcel = async (parcelData) => {
     setError(null);
     try {
       if (currentParcel) {
-        // Update existing parcel
         await updateParcel(currentParcel.id, parcelData);
       } else {
-        // Add new parcel
-        await addParcel(parcelData);
+        await createParcel(parcelData);
       }
       setIsModalOpen(false);
       setCurrentParcel(null);
-      fetchParcels(); // Refresh list
+      fetchParcels();
     } catch (err) {
       setError('Failed to save parcel.');
       console.error('Error saving parcel:', err);
@@ -60,11 +63,22 @@ const ParcelsPage = () => {
       setError(null);
       try {
         await deleteParcel(id);
-        fetchParcels(); // Refresh list
+        fetchParcels();
       } catch (err) {
         setError('Failed to delete parcel.');
         console.error('Error deleting parcel:', err);
       }
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    setError(null);
+    try {
+      await updateParcelStatus(id, newStatus);
+      fetchParcels();
+    } catch (err) {
+      setError('Failed to update parcel status.');
+      console.error('Error updating status:', err);
     }
   };
 
@@ -83,22 +97,7 @@ const ParcelsPage = () => {
     setCurrentParcel(null);
   };
 
-  const filteredParcels = parcels.filter(parcel => {
-    const matchesSearch = searchTerm === '' ||
-      parcel.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parcel.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parcel.phoneNumber.includes(searchTerm);
-
-    const matchesStatus = filterStatus === 'All' || parcel.status === filterStatus;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // Pagination calculations
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredParcels.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredParcels.length / itemsPerPage);
+  const totalPages = parcels.total ? Math.ceil(parcels.total / itemsPerPage) : 0;
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -138,7 +137,7 @@ const ParcelsPage = () => {
         <button className="secondary-button">Export</button>
       </div>
 
-      {filteredParcels.length === 0 ? (
+      {parcels.items?.length === 0 ? (
         <p className="no-parcels-message">No parcels found.</p>
       ) : (
         <div className="table-responsive">
@@ -156,15 +155,27 @@ const ParcelsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {currentItems.map((parcel) => (
+              {parcels.items?.map((parcel) => (
                 <tr key={parcel.id}>
-                  <td>{parcel.trackingNumber}</td>
-                  <td>{parcel.customerName}</td>
-                  <td>{parcel.phoneNumber}</td>
-                  <td>{parcel.deliveryAddress}</td>
-                  <td>KES {parcel.parcelValue.toFixed(2)}</td>
-                  <td><span className={`status-badge ${parcel.status.toLowerCase()}`}>{parcel.status}</span></td>
-                  <td>{parcel.orderDate}</td>
+                  <td>{parcel.tracking_number}</td>
+                  <td>{parcel.customer_name}</td>
+                  <td>{parcel.phone_number}</td>
+                  <td>{parcel.delivery_address}</td>
+                  <td>KES {parcel.parcel_value.toFixed(2)}</td>
+                  <td>
+                    <select
+                      value={parcel.status}
+                      onChange={(e) => handleStatusChange(parcel.id, e.target.value)}
+                      className={`status-badge ${parcel.status.toLowerCase()}`}
+                    >
+                      <option value="Paid">Paid</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Postponed">Postponed</option>
+                      <option value="Overdue">Overdue</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </td>
+                  <td>{parcel.order_date}</td>
                   <td>
                     <button className="action-button edit" onClick={() => openEditModal(parcel)}>Edit</button>
                     <button className="action-button delete" onClick={() => handleDeleteParcel(parcel.id)}>Delete</button>
@@ -176,8 +187,7 @@ const ParcelsPage = () => {
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {filteredParcels.length > itemsPerPageOptions[0] && (
+      {parcels.total > itemsPerPageOptions[0] && (
         <div className="pagination-controls">
           <div className="items-per-page">
             Show
@@ -215,40 +225,38 @@ const ParcelsPage = () => {
   );
 };
 
-// Parcel Modal Component
 const ParcelModal = ({ parcel, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    customerName: '',
-    phoneNumber: '',
-    deliveryAddress: '',
-    parcelDescription: '',
-    parcelValue: '',
-    orderDate: '',
+    customer_name: '',
+    phone_number: '',
+    delivery_address: '',
+    parcel_description: '',
+    parcel_value: '',
+    order_date: '',
     status: 'Pending',
     notes: '',
-    newDeliveryDate: '', // For postponed status
   });
   const [formErrors, setFormErrors] = useState({});
 
+
   useEffect(() => {
     if (parcel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
-        customerName: parcel.customerName || '',
-        phoneNumber: parcel.phoneNumber || '',
-        deliveryAddress: parcel.deliveryAddress || '',
-        parcelDescription: parcel.parcelDescription || '',
-        parcelValue: parcel.parcelValue || '',
-        orderDate: parcel.orderDate || '',
+        customer_name: parcel.customer_name || '',
+        phone_number: parcel.phone_number || '',
+        delivery_address: parcel.delivery_address || '',
+        parcel_description: parcel.parcel_description || '',
+        parcel_value: parcel.parcel_value || '',
+        order_date: parcel.order_date || '',
         status: parcel.status || 'Pending',
         notes: parcel.notes || '',
-        newDeliveryDate: '', // Not stored in parcel directly, used for update
       });
     } else {
-      // Set defaults for new parcel
       const today = new Date().toISOString().split('T')[0];
       setFormData(prev => ({
         ...prev,
-        orderDate: today,
+        order_date: today,
       }));
     }
   }, [parcel]);
@@ -260,14 +268,11 @@ const ParcelModal = ({ parcel, onClose, onSave }) => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.customerName) errors.customerName = 'Customer Name is required';
-    if (!formData.phoneNumber) errors.phoneNumber = 'Phone Number is required';
-    if (!formData.deliveryAddress) errors.deliveryAddress = 'Delivery Address is required';
-    if (!formData.parcelValue || isNaN(formData.parcelValue) || parseFloat(formData.parcelValue) <= 0) {
-      errors.parcelValue = 'Valid Parcel Value is required';
-    }
-    if (formData.status === 'Postponed' && !formData.newDeliveryDate) {
-      errors.newDeliveryDate = 'New Delivery Date is required for postponed parcels';
+    if (!formData.customer_name) errors.customer_name = 'Customer Name is required';
+    if (!formData.phone_number) errors.phone_number = 'Phone Number is required';
+    if (!formData.delivery_address) errors.delivery_address = 'Delivery Address is required';
+    if (!formData.parcel_value || isNaN(formData.parcel_value) || parseFloat(formData.parcel_value) <= 0) {
+      errors.parcel_value = 'Valid Parcel Value is required';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -281,8 +286,7 @@ const ParcelModal = ({ parcel, onClose, onSave }) => {
 
     const parcelToSave = {
       ...formData,
-      parcelValue: parseFloat(formData.parcelValue),
-      // Logic for postponed status handling will be in the backend or a service
+      parcel_value: parseFloat(formData.parcel_value),
     };
     onSave(parcelToSave);
   };
@@ -296,32 +300,32 @@ const ParcelModal = ({ parcel, onClose, onSave }) => {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="customerName">Customer Name *</label>
-            <input type="text" id="customerName" name="customerName" value={formData.customerName} onChange={handleChange} />
-            {formErrors.customerName && <p className="form-error">{formErrors.customerName}</p>}
+            <label htmlFor="customer_name">Customer Name *</label>
+            <input type="text" id="customer_name" name="customer_name" value={formData.customer_name} onChange={handleChange} />
+            {formErrors.customer_name && <p className="form-error">{formErrors.customer_name}</p>}
           </div>
           <div className="form-group">
-            <label htmlFor="phoneNumber">Phone Number *</label>
-            <input type="text" id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
-            {formErrors.phoneNumber && <p className="form-error">{formErrors.phoneNumber}</p>}
+            <label htmlFor="phone_number">Phone Number *</label>
+            <input type="text" id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} />
+            {formErrors.phone_number && <p className="form-error">{formErrors.phone_number}</p>}
           </div>
           <div className="form-group">
-            <label htmlFor="deliveryAddress">Delivery Address *</label>
-            <textarea id="deliveryAddress" name="deliveryAddress" value={formData.deliveryAddress} onChange={handleChange}></textarea>
-            {formErrors.deliveryAddress && <p className="form-error">{formErrors.deliveryAddress}</p>}
+            <label htmlFor="delivery_address">Delivery Address *</label>
+            <textarea id="delivery_address" name="delivery_address" value={formData.delivery_address} onChange={handleChange}></textarea>
+            {formErrors.delivery_address && <p className="form-error">{formErrors.delivery_address}</p>}
           </div>
           <div className="form-group">
-            <label htmlFor="parcelDescription">Parcel Description</label>
-            <input type="text" id="parcelDescription" name="parcelDescription" value={formData.parcelDescription} onChange={handleChange} />
+            <label htmlFor="parcel_description">Parcel Description</label>
+            <input type="text" id="parcel_description" name="parcel_description" value={formData.parcel_description} onChange={handleChange} />
           </div>
           <div className="form-group">
-            <label htmlFor="parcelValue">Parcel Value *</label>
-            <input type="number" id="parcelValue" name="parcelValue" value={formData.parcelValue} onChange={handleChange} step="0.01" />
-            {formErrors.parcelValue && <p className="form-error">{formErrors.parcelValue}</p>}
+            <label htmlFor="parcel_value">Parcel Value *</label>
+            <input type="number" id="parcel_value" name="parcel_value" value={formData.parcel_value} onChange={handleChange} step="0.01" />
+            {formErrors.parcel_value && <p className="form-error">{formErrors.parcel_value}</p>}
           </div>
           <div className="form-group">
-            <label htmlFor="orderDate">Order Date</label>
-            <input type="date" id="orderDate" name="orderDate" value={formData.orderDate} onChange={handleChange} />
+            <label htmlFor="order_date">Order Date</label>
+            <input type="date" id="order_date" name="order_date" value={formData.order_date} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label htmlFor="status">Status</label>
@@ -333,13 +337,6 @@ const ParcelModal = ({ parcel, onClose, onSave }) => {
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
-          {formData.status === 'Postponed' && (
-            <div className="form-group">
-              <label htmlFor="newDeliveryDate">New Delivery Date *</label>
-              <input type="date" id="newDeliveryDate" name="newDeliveryDate" value={formData.newDeliveryDate} onChange={handleChange} />
-              {formErrors.newDeliveryDate && <p className="form-error">{formErrors.newDeliveryDate}</p>}
-            </div>
-          )}
           <div className="form-group">
             <label htmlFor="notes">Notes</label>
             <textarea id="notes" name="notes" value={formData.notes} onChange={handleChange}></textarea>

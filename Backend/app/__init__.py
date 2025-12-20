@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 
@@ -27,6 +28,11 @@ def create_app(config_name='development'):
 
 
     # Initialize extensions
+    if config_name == 'development':
+        CORS(app, resources={r"/api/*": {"origins": "*"}})
+    else:
+        CORS(app, resources={r"/api/*": {"origins": ["http://lkok8cs0co0w8o4oos800s4g.161.97.125.199.sslip.io", "http://localhost:3000", "http://localhost:5177", "http://127.0.0.1:5178"]}})
+    
     db.init_app(app)
     JWTManager(app)
     Migrate(app, db)

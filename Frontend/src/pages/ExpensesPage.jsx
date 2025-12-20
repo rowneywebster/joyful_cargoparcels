@@ -1,59 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ExpensesPage.css';
-import { getExpenses, addExpense, updateExpense, deleteExpense } from '../api/expenses';
+import { getExpenses, createExpense, updateExpense, deleteExpense, getExpenseCategories } from '../api/expenses';
 import { useAuth } from '../hooks/useAuth';
-
-const EXPENSE_CATEGORIES = [
-  'Stock Purchase',
-  'Rider Payout',
-  'Packaging',
-  'Courier Freight',
-  'Other',
-];
 
 const ExpensesPage = () => {
   const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentExpense, setCurrentExpense] = useState(null); // For edit mode
+  const [currentExpense, setCurrentExpense] = useState(null);
   const [filterCategory, setFilterCategory] = useState('All');
-  const [filterDateRange, setFilterDateRange] = useState('ThisMonth'); // Default to current month
+  const [filterDateRange, setFilterDateRange] = useState('ThisMonth');
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchExpenses();
-  }, [filterCategory, filterDateRange]);
+    
+    fetchData();
+  }, [fetchData]);
 
-  const fetchExpenses = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getExpenses();
-      // Apply client-side filtering for now
-      let filteredData = data;
-
-      if (filterCategory !== 'All') {
-        filteredData = filteredData.filter(exp => exp.category === filterCategory);
-      }
-
-      const today = new Date();
-      if (filterDateRange === 'ThisMonth') {
-        filteredData = filteredData.filter(exp => {
-          const expenseDate = new Date(exp.date);
-          return expenseDate.getMonth() === today.getMonth() && expenseDate.getFullYear() === today.getFullYear();
-        });
-      }
-      // Add more date range filters as needed
-
-      setExpenses(filteredData);
+      const [expensesData, categoriesData] = await Promise.all([
+        getExpenses({ category: filterCategory, date_range: filterDateRange }),
+        getExpenseCategories(),
+      ]);
+      setExpenses(expensesData);
+      setCategories(categoriesData);
     } catch (err) {
       setError('Failed to fetch expenses.');
       console.error('Error fetching expenses:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterCategory, filterDateRange, setExpenses, setCategories, setLoading, setError]);
 
   const handleAddEditExpense = async (expenseData) => {
     setError(null);
@@ -61,11 +43,11 @@ const ExpensesPage = () => {
       if (currentExpense) {
         await updateExpense(currentExpense.id, expenseData);
       } else {
-        await addExpense({ ...expenseData, addedBy: user?.name || 'Unknown' });
+        await createExpense({ ...expenseData, addedBy: user?.name || 'Unknown' });
       }
       setIsModalOpen(false);
       setCurrentExpense(null);
-      fetchExpenses();
+      fetchData();
     } catch (err) {
       setError('Failed to save expense.');
       console.error('Error saving expense:', err);
@@ -77,7 +59,7 @@ const ExpensesPage = () => {
       setError(null);
       try {
         await deleteExpense(id);
-        fetchExpenses();
+        fetchData();
       } catch (err) {
         setError('Failed to delete expense.');
         console.error('Error deleting expense:', err);
@@ -132,8 +114,8 @@ const ExpensesPage = () => {
           onChange={(e) => setFilterCategory(e.target.value)}
         >
           <option value="All">All Categories</option>
-          {EXPENSE_CATEGORIES.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.name}>{cat.name}</option>
           ))}
         </select>
         <button className="secondary-button">Export to CSV</button>
@@ -144,7 +126,6 @@ const ExpensesPage = () => {
           <h3>Total Expenses ({filterDateRange})</h3>
           <p className="metric-value">KES {totalExpenses.toFixed(2)}</p>
         </div>
-        {/* Add more summary cards like breakdown by category, top expense category etc. */}
       </div>
 
       {expenses.length === 0 ? (
@@ -171,9 +152,9 @@ const ExpensesPage = () => {
                   <td><span className={`category-tag ${expense.category.toLowerCase().replace(/\s/g, '-')}`}>{expense.category}</span></td>
                   <td>{expense.description}</td>
                   <td>KES {expense.amount.toFixed(2)}</td>
-                  <td>{expense.paymentMethod}</td>
+                  <td>{expense.payment_method}</td>
                   <td>{expense.reference || 'N/A'}</td>
-                  <td>{expense.addedBy}</td>
+                  <td>{expense.added_by}</td>
                   <td>
                     <button className="action-button edit" onClick={() => openEditModal(expense)}>Edit</button>
                     <button className="action-button delete" onClick={() => handleDeleteExpense(expense.id)}>Delete</button>
@@ -190,34 +171,35 @@ const ExpensesPage = () => {
           expense={currentExpense}
           onClose={closeModal}
           onSave={handleAddEditExpense}
-          categories={EXPENSE_CATEGORIES}
+          categories={categories}
         />
       )}
     </div>
   );
 };
 
-// Expense Modal Component
 const ExpenseModal = ({ expense, onClose, onSave, categories }) => {
   const [formData, setFormData] = useState({
     date: '',
-    category: categories[0] || '',
+    category: categories[0]?.name || '',
     description: '',
     amount: '',
-    paymentMethod: 'Cash',
+    payment_method: 'Cash',
     reference: '',
     notes: '',
   });
   const [formErrors, setFormErrors] = useState({});
 
+
   useEffect(() => {
     if (expense) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         date: expense.date || '',
-        category: expense.category || categories[0],
+        category: expense.category || categories[0]?.name,
         description: expense.description || '',
         amount: expense.amount || '',
-        paymentMethod: expense.paymentMethod || 'Cash',
+        payment_method: expense.payment_method || 'Cash',
         reference: expense.reference || '',
         notes: expense.notes || '',
       });
@@ -269,7 +251,7 @@ const ExpenseModal = ({ expense, onClose, onSave, categories }) => {
             <label htmlFor="category">Category *</label>
             <select id="category" name="category" value={formData.category} onChange={handleChange}>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
             </select>
             {formErrors.category && <p className="form-error">{formErrors.category}</p>}
@@ -285,8 +267,8 @@ const ExpenseModal = ({ expense, onClose, onSave, categories }) => {
             {formErrors.amount && <p className="form-error">{formErrors.amount}</p>}
           </div>
           <div className="form-group">
-            <label htmlFor="paymentMethod">Payment Method</label>
-            <select id="paymentMethod" name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}>
+            <label htmlFor="payment_method">Payment Method</label>
+            <select id="payment_method" name="payment_method" value={formData.payment_method} onChange={handleChange}>
               <option value="Cash">Cash</option>
               <option value="Bank Transfer">Bank Transfer</option>
               <option value="Card">Card</option>

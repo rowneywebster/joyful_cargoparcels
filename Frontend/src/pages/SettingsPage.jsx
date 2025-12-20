@@ -2,58 +2,36 @@ import React, { useState, useEffect } from 'react';
 import './SettingsPage.css';
 import { useAuth } from '../hooks/useAuth';
 import {
-  getBusinessSettings, updateBusinessSettings,
-  getUsers, addUser, updateUser, deleteUser, resetUserPassword
+  getUsers, createUser, updateUser, deleteUser, updateUserRole
 } from '../api/settings';
 
 const SettingsPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const [businessSettings, setBusinessSettings] = useState({});
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'business' : 'profile'); // Admin default to business, user to profile
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'users' : 'profile');
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // For edit user
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const fetchData = async () => {
-      try {
-        if (isAdmin) {
-          const bs = await getBusinessSettings();
-          setBusinessSettings(bs);
-          const allUsers = await getUsers();
-          setUsers(allUsers);
-        } else {
-          // For regular users, fetch their own profile data if needed
-          // For now, we'll just use the user from auth context
-        }
-      } catch (err) {
-        setError('Failed to fetch settings data.');
-        console.error('Error fetching settings:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [isAdmin]);
-
-  const handleUpdateBusinessSettings = async (e) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await updateBusinessSettings(businessSettings);
-      alert('Business settings updated successfully!');
-    } catch (err) {
-      setError('Failed to update business settings.');
-      console.error('Error updating business settings:', err);
+    if (isAdmin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(null);
+      getUsers()
+        .then(setUsers)
+        .catch(err => {
+          setError('Failed to fetch users data.');
+          console.error('Error fetching users:', err);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false); // If not admin, stop loading immediately
     }
-  };
+  }, [isAdmin]);
 
   const handleAddEditUser = async (userData) => {
     setError(null);
@@ -61,11 +39,11 @@ const SettingsPage = () => {
       if (currentUser) {
         await updateUser(currentUser.id, userData);
       } else {
-        await addUser(userData);
+        await createUser(userData);
       }
       setIsUserModalOpen(false);
       setCurrentUser(null);
-      const allUsers = await getUsers(); // Refresh user list
+      const allUsers = await getUsers();
       setUsers(allUsers);
     } catch (err) {
       setError('Failed to save user.');
@@ -78,7 +56,7 @@ const SettingsPage = () => {
       setError(null);
       try {
         await deleteUser(userId);
-        const allUsers = await getUsers(); // Refresh user list
+        const allUsers = await getUsers();
         setUsers(allUsers);
       } catch (err) {
         setError('Failed to delete user.');
@@ -87,16 +65,15 @@ const SettingsPage = () => {
     }
   };
 
-  const handleResetPassword = async (userId) => {
-    if (window.confirm('Are you sure you want to reset this user\'s password?')) {
-      setError(null);
-      try {
-        await resetUserPassword(userId);
-        alert('User password reset successfully!');
-      } catch (err) {
-        setError('Failed to reset password.');
-        console.error('Error resetting password:', err);
-      }
+  const handleRoleChange = async (userId, newRole) => {
+    setError(null);
+    try {
+      await updateUserRole(userId, newRole);
+      const allUsers = await getUsers();
+      setUsers(allUsers);
+    } catch (err) {
+      setError('Failed to update user role.');
+      console.error('Error updating role:', err);
     }
   };
 
@@ -129,20 +106,12 @@ const SettingsPage = () => {
 
       <div className="settings-tabs">
         {isAdmin && (
-          <>
-            <button
-              className={`tab-button ${activeTab === 'business' ? 'active' : ''}`}
-              onClick={() => setActiveTab('business')}
-            >
-              Business Settings
-            </button>
-            <button
-              className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveTab('users')}
-            >
-              User Management
-            </button>
-          </>
+          <button
+            className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveTab('users')}
+          >
+            User Management
+          </button>
         )}
         <button
           className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
@@ -153,41 +122,6 @@ const SettingsPage = () => {
       </div>
 
       <div className="settings-content">
-        {isAdmin && activeTab === 'business' && (
-          <div className="settings-section">
-            <h2>Business Settings</h2>
-            <form onSubmit={handleUpdateBusinessSettings}>
-              <div className="form-group">
-                <label htmlFor="businessName">Business Name</label>
-                <input
-                  type="text"
-                  id="businessName"
-                  value={businessSettings.businessName || ''}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, businessName: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="contactInfo">Contact Information</label>
-                <input
-                  type="text"
-                  id="contactInfo"
-                  value={businessSettings.contactInfo || ''}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, contactInfo: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="address">Address</label>
-                <textarea
-                  id="address"
-                  value={businessSettings.address || ''}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, address: e.target.value })}
-                ></textarea>
-              </div>
-              <button type="submit" className="primary-button">Save Business Settings</button>
-            </form>
-          </div>
-        )}
-
         {isAdmin && activeTab === 'users' && (
           <div className="settings-section">
             <h2>User Management</h2>
@@ -199,21 +133,26 @@ const SettingsPage = () => {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td>{u.name}</td>
+                      <td>{u.username}</td>
                       <td>{u.email}</td>
-                      <td>{u.role}</td>
-                      <td>{u.status}</td>
+                      <td>
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
                       <td>
                         <button className="action-button edit" onClick={() => openEditUserModal(u)}>Edit</button>
                         <button className="action-button delete" onClick={() => handleDeleteUser(u.id)}>Delete</button>
-                        <button className="action-button reset-password" onClick={() => handleResetPassword(u.id)}>Reset Password</button>
                       </td>
                     </tr>
                   ))}
@@ -229,17 +168,16 @@ const SettingsPage = () => {
             <form>
               <div className="form-group">
                 <label htmlFor="profileName">Name</label>
-                <input type="text" id="profileName" value={user?.name || ''} readOnly />
+                <input type="text" id="profileName" value={user?.username || ''} readOnly />
               </div>
               <div className="form-group">
                 <label htmlFor="profileEmail">Email</label>
-                <input type="email" id="profileEmail" value={user?.username || ''} readOnly />
+                <input type="email" id="profileEmail" value={user?.email || ''} readOnly />
               </div>
               <div className="form-group">
                 <label htmlFor="profileRole">Role</label>
                 <input type="text" id="profileRole" value={user?.role || ''} readOnly />
               </div>
-              {/* Add password change and notification preferences here */}
               <button type="submit" className="primary-button" disabled>Update Profile (Coming Soon)</button>
             </form>
           </div>
@@ -257,29 +195,28 @@ const SettingsPage = () => {
   );
 };
 
-// User Modal Component
 const UserModal = ({ user, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     role: 'user',
-    status: 'active',
-    password: '', // Only for new user
+    password: '',
   });
   const [formErrors, setFormErrors] = useState({});
 
+
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
-        name: user.name || '',
+        username: user.username || '',
         email: user.email || '',
         role: user.role || 'user',
-        status: user.status || 'active',
-        password: '', // Never pre-fill password for edit
+        password: '',
       });
     } else {
       setFormData(
-        { name: '', email: '', role: 'user', status: 'active', password: '' }
+        { username: '', email: '', role: 'user', password: '' }
       );
     }
   }, [user]);
@@ -291,9 +228,9 @@ const UserModal = ({ user, onClose, onSave }) => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.name) errors.name = 'Name is required';
+    if (!formData.username) errors.username = 'Name is required';
     if (!formData.email) errors.email = 'Email is required';
-    if (!user && !formData.password) errors.password = 'Password is required for new users'; // Password required only for new users
+    if (!user && !formData.password) errors.password = 'Password is required for new users';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -315,9 +252,9 @@ const UserModal = ({ user, onClose, onSave }) => {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Name *</label>
-            <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} />
-            {formErrors.name && <p className="form-error">{formErrors.name}</p>}
+            <label htmlFor="username">Name *</label>
+            <input type="text" id="username" name="username" value={formData.username} onChange={handleChange} />
+            {formErrors.username && <p className="form-error">{formErrors.username}</p>}
           </div>
           <div className="form-group">
             <label htmlFor="email">Email *</label>
@@ -331,14 +268,7 @@ const UserModal = ({ user, onClose, onSave }) => {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div className="form-group">
-            <label htmlFor="status">Status</label>
-            <select id="status" name="status" value={formData.status} onChange={handleChange}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          {!user && ( // Password field only for new users
+          {!user && (
             <div className="form-group">
               <label htmlFor="password">Password *</label>
               <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} />

@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './PostponedOrdersPage.css';
-import { getPostponedOrders, updatePostponedOrder, deletePostponedOrder } from '../api/postponedOrders';
-import { getParcelById } from '../api/parcels'; // To link back to parcel details
+import { getPostponedOrders, updatePostponedOrder, resolvePostponedOrder } from '../api/postponedOrders';
 
 const PostponedOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState('All'); // e.g., 'All', 'Today', 'ThisWeek', 'ThisMonth'
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [newRescheduleDate, setNewRescheduleDate] = useState('');
@@ -35,9 +33,8 @@ const PostponedOrdersPage = () => {
     if (window.confirm('Are you sure you want to mark this order as resolved? This will update the original parcel status.')) {
       setError(null);
       try {
-        await deletePostponedOrder(orderId); // In dummy API, resolving means removing from this list
-        fetchPostponedOrders(); // Refresh list
-        // In a real app, this would also trigger an update on the original parcel's status
+        await resolvePostponedOrder(orderId);
+        fetchPostponedOrders();
       } catch (err) {
         setError('Failed to mark order as resolved.');
         console.error('Error marking order as resolved:', err);
@@ -47,7 +44,7 @@ const PostponedOrdersPage = () => {
 
   const openRescheduleModal = (order) => {
     setSelectedOrder(order);
-    setNewRescheduleDate(order.newDeliveryDate); // Pre-fill with current new date
+    setNewRescheduleDate(order.new_delivery_date);
     setIsRescheduleModalOpen(true);
   };
 
@@ -59,11 +56,11 @@ const PostponedOrdersPage = () => {
     }
     setError(null);
     try {
-      await updatePostponedOrder(selectedOrder.id, { newDeliveryDate: newRescheduleDate });
+      await updatePostponedOrder(selectedOrder.id, { new_delivery_date: newRescheduleDate });
       setIsRescheduleModalOpen(false);
       setSelectedOrder(null);
       setNewRescheduleDate('');
-      fetchPostponedOrders(); // Refresh list
+      fetchPostponedOrders();
     } catch (err) {
       setError('Failed to reschedule order.');
       console.error('Error rescheduling order:', err);
@@ -78,32 +75,11 @@ const PostponedOrdersPage = () => {
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = searchTerm === '' ||
-      order.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+      order.parcel.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.parcel.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Basic date range filtering (can be expanded)
-    const today = new Date().toISOString().split('T')[0];
-    const matchesDateRange = true; // Placeholder for now
-
-    return matchesSearch && matchesDateRange;
+    return matchesSearch;
   });
-
-  // Calculate summary metrics
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize today's date to start of day
-
-  const totalPostponed = filteredOrders.length;
-  const dueToday = filteredOrders.filter(order => {
-    const newDeliveryDate = new Date(order.newDeliveryDate);
-    newDeliveryDate.setHours(0, 0, 0, 0);
-    return newDeliveryDate.getTime() === today.getTime();
-  }).length;
-  const pastDue = filteredOrders.filter(order => {
-    const newDeliveryDate = new Date(order.newDeliveryDate);
-    newDeliveryDate.setHours(0, 0, 0, 0);
-    return newDeliveryDate.getTime() < today.getTime();
-  }).length;
-
 
   if (loading) {
     return <div className="loading-message">Loading postponed orders...</div>;
@@ -118,21 +94,6 @@ const PostponedOrdersPage = () => {
       <h1 className="postponed-orders-title">Postponed Orders</h1>
       <p className="page-description">Orders automatically synced from parcels marked as postponed</p>
 
-      <div className="summary-cards-container">
-        <div className="summary-card">
-          <h3>Total Postponed</h3>
-          <p className="metric-value">{totalPostponed}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Due Today</h3>
-          <p className="metric-value">{dueToday}</p>
-        </div>
-        <div className="summary-card warning">
-          <h3>Past Due</h3>
-          <p className="metric-value">{pastDue}</p>
-        </div>
-      </div>
-
       <div className="top-action-bar">
         <input
           type="text"
@@ -141,17 +102,6 @@ const PostponedOrdersPage = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <select
-          className="filter-select"
-          value={filterDateRange}
-          onChange={(e) => setFilterDateRange(e.target.value)}
-        >
-          <option value="All">All Dates</option>
-          <option value="Today">Due Today</option>
-          <option value="ThisWeek">Due This Week</option>
-          <option value="ThisMonth">Due This Month</option>
-        </select>
-        <button className="primary-button">Send Reminders</button> {/* New button */}
         <a href="/parcels" className="secondary-button">View All Parcels</a>
       </div>
 
@@ -168,35 +118,24 @@ const PostponedOrdersPage = () => {
                 <th>Original Delivery Date</th>
                 <th>New Delivery Date</th>
                 <th>Postpone Reason</th>
-                <th>Days Postponed</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => {
-                const originalDate = new Date(order.originalDeliveryDate);
-                const newDate = new Date(order.newDeliveryDate);
-                const diffTime = Math.abs(newDate - originalDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const isApproaching = (newDate - new Date()) / (1000 * 60 * 60 * 24) <= 3 && (newDate - new Date()) > 0;
-                const isPastDue = newDate < new Date();
-
-                return (
-                  <tr key={order.id} className={`${isApproaching ? 'approaching-due' : ''} ${isPastDue ? 'past-due' : ''}`}>
-                    <td><a href={`/parcels/${order.trackingNumber}`} className="tracking-link">{order.trackingNumber}</a></td>
-                    <td>{order.customerName}</td>
-                    <td>{order.phoneNumber}</td>
-                    <td>{order.originalDeliveryDate}</td>
-                    <td className="new-delivery-date">{order.newDeliveryDate}</td>
-                    <td>{order.postponeReason || 'N/A'}</td>
-                    <td>{diffDays}</td>
-                    <td>
-                      <button className="action-button edit" onClick={() => openRescheduleModal(order)}>Reschedule</button>
-                      <button className="action-button resolve" onClick={() => handleMarkAsResolved(order.id)}>Mark as Resolved</button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredOrders.map((order) => (
+                <tr key={order.id}>
+                  <td><a href={`/parcels/${order.parcel.id}`} className="tracking-link">{order.parcel.tracking_number}</a></td>
+                  <td>{order.parcel.customer_name}</td>
+                  <td>{order.parcel.phone_number}</td>
+                  <td>{order.original_delivery_date}</td>
+                  <td className="new-delivery-date">{order.new_delivery_date}</td>
+                  <td>{order.reason || 'N/A'}</td>
+                  <td>
+                    <button className="action-button edit" onClick={() => openRescheduleModal(order)}>Reschedule</button>
+                    <button className="action-button resolve" onClick={() => handleMarkAsResolved(order.id)}>Mark as Resolved</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -215,13 +154,12 @@ const PostponedOrdersPage = () => {
   );
 };
 
-// Reschedule Modal Component
 const RescheduleModal = ({ order, newRescheduleDate, setNewRescheduleDate, onClose, onSave }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h2>Reschedule Order: {order.trackingNumber}</h2>
+          <h2>Reschedule Order: {order.parcel.tracking_number}</h2>
           <button className="close-button" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={onSave}>
@@ -247,3 +185,4 @@ const RescheduleModal = ({ order, newRescheduleDate, setNewRescheduleDate, onClo
 };
 
 export default PostponedOrdersPage;
+

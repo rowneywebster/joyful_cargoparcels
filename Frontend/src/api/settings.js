@@ -1,7 +1,11 @@
+import api from './api';
+
 // src/api/settings.js
 // This is a dummy API for demonstration purposes.
 // In a real application, these would be actual API calls to a backend.
 
+// --- Business Settings API (DUMMY DATA) ---
+// TODO: Replace with actual API calls when backend endpoints are available.
 let DUMMY_BUSINESS_SETTINGS = {
   businessName: 'Joyful Cargo Logistics',
   contactInfo: 'info@joyfulcargo.com | +1 (555) 123-4567',
@@ -11,13 +15,6 @@ let DUMMY_BUSINESS_SETTINGS = {
   timezone: 'America/New_York',
 };
 
-let DUMMY_USERS = [
-  { id: 'USR001', name: 'Admin User', email: 'admin@example.com', role: 'admin', status: 'active' },
-  { id: 'USR002', name: 'Regular User', email: 'user@example.com', role: 'user', status: 'active' },
-  { id: 'USR003', name: 'Inactive User', email: 'inactive@example.com', role: 'user', status: 'inactive' },
-];
-
-// --- Business Settings API ---
 export const getBusinessSettings = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -35,78 +32,61 @@ export const updateBusinessSettings = async (updatedSettings) => {
   });
 };
 
+
 // --- User Management API ---
 export const getUsers = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(DUMMY_USERS);
-    }, 500);
-  });
+  const response = await api.get('/users');
+  return response.data;
 };
 
-export const getUserById = async (id) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const user = DUMMY_USERS.find((u) => u.id === id);
-      if (user) {
-        resolve(user);
-      } else {
-        throw new Error('User not found');
-      }
-    }, 300);
-  });
+export const getUser = async (id) => {
+  const response = await api.get(`/users/${id}`);
+  return response.data;
 };
 
-export const addUser = async (newUser) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const id = `USR${String(DUMMY_USERS.length + 1).padStart(3, '0')}`;
-      const userWithId = { ...newUser, id, status: newUser.status || 'active' };
-      DUMMY_USERS.push(userWithId);
-      resolve(userWithId);
-    }, 500);
-  });
+export const createUser = async (userData) => {
+  const response = await api.post('/users', userData);
+  return response.data;
 };
 
-export const updateUser = async (id, updatedUser) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const index = DUMMY_USERS.findIndex((u) => u.id === id);
-      if (index !== -1) {
-        DUMMY_USERS[index] = { ...DUMMY_USERS[index], ...updatedUser };
-        resolve(DUMMY_USERS[index]);
-      } else {
-        throw new Error('User not found');
-      }
-    }, 500);
-  });
+export const updateUser = async (id, userData) => {
+  const response = await api.put(`/users/${id}`, userData);
+  return response.data;
+};
+
+export const updateUserRole = async (id, role) => {
+  const response = await api.patch(`/users/${id}/role`, { role });
+  return response.data;
 };
 
 export const deleteUser = async (id) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const initialLength = DUMMY_USERS.length;
-      DUMMY_USERS = DUMMY_USERS.filter((u) => u.id !== id);
-      if (DUMMY_USERS.length < initialLength) {
-        resolve({ success: true });
-      } else {
-        throw new Error('User not found');
-      }
-    }, 500);
-  });
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
 };
 
 export const resetUserPassword = async (id) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const user = DUMMY_USERS.find((u) => u.id === id);
-      if (user) {
-        // In a real app, this would send a reset link or set a temporary password
-        console.log(`Password for user ${user.name} (ID: ${id}) has been reset.`);
-        resolve({ success: true, message: 'Password reset initiated.' });
-      } else {
-        throw new Error('User not found');
-      }
-    }, 500);
-  });
+  // In a real app, this would ideally trigger a password reset email.
+  // For now, we'll generate a random password and update the user.
+  const newPassword = Math.random().toString(36).slice(-8);
+  const response = await api.put(`/users/${id}`, { password: newPassword });
+  // The backend doesn't return the new password, so we'll just return a success message.
+  // We could also return the generated password to be displayed to the admin.
+  return { ...response.data, newPassword };
+};
+
+
+// --- Dashboard API ---
+export const getDashboardOverview = async () => {
+  const response = await api.get('/dashboard/overview');
+  return response.data;
+};
+
+export const getRevenueTrend = async () => {
+  const response = await api.get('/dashboard/revenue-trend');
+  return response.data;
+};
+
+export const getDashboardStats = async () => {
+  const response = await api.get('/dashboard/stats');
+  return response.data;
 };
